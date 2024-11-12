@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crystal Structure Simulation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0;
+        }
+        #container {
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        #controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        #image-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        #crystal-image {
+            width: 100%;
+            max-width: 250px;
+            height: auto;
+        }
+        #feedback {
+            color: green;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        #hint, #fact {
+            color: red;
+            font-size: 0.8rem;
+        }
+        #structure-name-section {
+            display: none;
+            margin-top: 10px;
+        }
+        #bonus-icon {
+            font-size: 1.5rem;
+            color: gold;
+        }
+        label {
+            font-size: 0.9rem;
+        }
+        button {
+            padding: 6px 12px;
+            margin: 5px;
+            font-size: 0.9rem;
+        }
+        select, input[type="text"] {
+            font-size: 0.9rem;
+            padding: 4px;
+            width: 100%;
+            max-width: 150px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="container">
+        <div id="controls">
+            <button onclick="showPreviousImage()">Previous</button>
+            <button onclick="showNextImage()">Next</button>
+        </div>
+
+        <div id="image-container">
+            <img id="crystal-image" src="dummy_image_link_1.jpg" alt="Crystal Structure">
+            <p id="feedback"></p>
+        </div>
+
+        <div>
+            <label for="unit-vector">Choose Unit Vector:</label>
+            <select id="unit-vector">
+                <option value="a_equals_b_equals_c">a = b = c</option>
+                <option value="a_not_equals_b_not_equals_c">a ≠ b ≠ c</option>
+                <option value="a_equals_b_not_equals_c">a = b ≠ c</option>
+            </select>
+        </div>
+        <div>
+
+            <label for="angle">Choose Angle:</label>
+            <select id="angle">
+                <option value="alpha_beta_gamma_90">α = β = γ = 90</option>
+                <option value="alpha_beta_90_not_gamma">α = β = 90 ≠ γ</option>
+                <option value="alpha_not_beta_not_gamma_not_90">α ≠ β ≠ γ ≠ 90</option>
+                <option value="alpha_beta_gamma_not_90">α = β = γ ≠ 90</option>
+                <option value="alpha_beta_90_gamma_120">α = β = 90, γ = 120</option>
+            </select>
+        </div>
+        <div>
+            <button onclick="checkSelection()">Check Selection</button>
+        </div>
+
+        <div id="structure-name-section">
+            <label for="structure-name">Enter Crystal Structure Name:</label>
+            <input type="text" id="structure-name" placeholder="Enter name">
+            <button onclick="checkName()">Submit</button>
+            <p id="hint"></p>
+            <p id="fact"></p>
+        </div>
+    </div>
+
+    <script>
+        const images = [
+            { 
+                src: "https://edwisely-global-content.s3.ap-south-1.amazonaws.com/Concept_Summary_Cards/HtmlImages/image20241105080045.png", 
+                vector: "a_equals_b_equals_c", 
+                angle: "alpha_beta_gamma_90", 
+                name: "Cubic", 
+                hint: "Hint: This is the simplest 3D symmetry with equal edges.",
+                fact: "Fact: All three axes are equal in length and all are perpendicular to one another."
+            },
+            { 
+                src: "https://edwisely-global-content.s3.ap-south-1.amazonaws.com/Concept_Summary_Cards/HtmlImages/image20241105081834.png", 
+                vector: "a_equals_b_not_equals_c", 
+                angle: "alpha_beta_gamma_90", 
+                name: "Tetragonal", 
+                hint: "Hint: This structure has two equal edges but a different height.",
+                fact: "Fact: Two of the three axes are equal in length and all three axes are perpendicular to each other."
+            },
+            { 
+                src: "https://edwisely-global-content.s3.ap-south-1.amazonaws.com/Concept_Summary_Cards/HtmlImages/image20241105081951.png", 
+                vector: "a_not_equals_b_not_equals_c", 
+                angle: "alpha_beta_gamma_90", 
+                name: "Orthorhombic", 
+                hint: "Hint: All edges differ in length but maintain 90-degree angles.",
+                fact: "Fact: All three axes are unequal in length and all are perpendicular to one another."
+            },
+            { 
+                src: "https://edwisely-global-content.s3.ap-south-1.amazonaws.com/Concept_Summary_Cards/HtmlImages/image20241105082747.png", 
+                vector: "a_not_equals_b_not_equals_c", 
+                angle: "alpha_beta_90_not_gamma", 
+                name: "Monoclinic", 
+                hint: "Hint: This structure tilts in one direction, with only two 90-degree angles.",
+                fact: "Fact: All three axes are unequal in length and two axes are perpendicular to each other."
+            },
+            { 
+                src: "https://edwisely-global-content.s3.ap-south-1.amazonaws.com/Concept_Summary_Cards/HtmlImages/image20241105082406.png", 
+                vector: "a_not_equals_b_not_equals_c", 
+                angle: "alpha_not_beta_not_gamma_not_90", 
+                name: "Triclinic", 
+                hint: "Hint: This structure has no 90-degree angles and all sides are different.",
+                fact: "Fact: All three axes are unequal in length and none is perpendicular to another."
+            },
+            { 
+                src: "https://edwisely-global-content.s3.ap-south-1.amazonaws.com/Concept_Summary_Cards/HtmlImages/image20241105082629.png", 
+                vector: "a_equals_b_equals_c", 
+                angle: "alpha_beta_gamma_not_90", 
+                name: "Trigonal", 
+                hint: "Hint: This structure has equal edges but angles are not 90 degrees.",
+                fact: "Fact: All three axes are of equal length and none of the axes is perpendicular to another. But the crystal faces all have the same size and shape."
+            },
+            { 
+                src: "https://edwisely-global-content.s3.ap-south-1.amazonaws.com/Concept_Summary_Cards/HtmlImages/image20241105082058.png", 
+                vector: "a_equals_b_not_equals_c", 
+                angle: "alpha_beta_90_gamma_120", 
+                name: "Hexagonal", 
+                hint: "Hint: This structure has two equal edges and an angle of 120 degrees.",
+                fact: "Fact: Of four axes, three are of equal length, are separated by equal angles and lie in the same plane. The fourth axis is perpendicular to the plane of the other three axes. Hexagonal cells have lattice points in each of the two six-sided faces."
+            }
+        ];
+        
+        let currentImageIndex = 0;
+        let attempts = 0;
+
+        function showImage() {
+            const imgElement = document.getElementById("crystal-image");
+            imgElement.src = images[currentImageIndex].src;
+            document.getElementById("feedback").textContent = "";
+            document.getElementById("hint").textContent = "";
+            document.getElementById("fact").textContent = "";
+            document.getElementById("structure-name-section").style.display = "none";
+        }
+
+        function showPreviousImage() {
+            currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
+            showImage();
+        }
+
+        function showNextImage() {
+            currentImageIndex = (currentImageIndex + 1) % images.length;
+            showImage();
+        }
+
+        function checkSelection() {
+            const selectedVector = document.getElementById("unit-vector").value;
+            const selectedAngle = document.getElementById("angle").value;
+            const correctVector = images[currentImageIndex].vector;
+            const correctAngle = images[currentImageIndex].angle;
+
+            if (selectedVector === correctVector && selectedAngle === correctAngle) {
+                document.getElementById("feedback").textContent = "Correct! Now enter the structure's name.";
+                document.getElementById("structure-name-section").style.display = "block";
+                attempts = 0; 
+            } else {
+                document.getElementById("feedback").textContent = "Incorrect selection. Try again.";
+            }
+        }
+
+        function checkName() {
+            const enteredName = document.getElementById("structure-name").value.trim();
+            const correctName = images[currentImageIndex].name;
+
+            if (enteredName.toLowerCase() === correctName.toLowerCase()) {
+                document.getElementById("feedback").innerHTML = "<span id='bonus-icon'>🏆 Super!</span>";
+                document.getElementById("fact").textContent = images[currentImageIndex].fact;
+                document.getElementById("structure-name-section").style.display = "none";
+            } else {
+                attempts++;
+                if (attempts === 1) {
+                    document.getElementById("hint").textContent = images[currentImageIndex].hint;
+                } else if (attempts >= 2) {
+                    document.getElementById("hint").textContent = "The correct answer is: " + correctName;
+                    document.getElementById("structure-name-section").style.display = "none";
+                }
+            }
+        }
+
+        showImage();
+    </script>
+</body>
+</html>

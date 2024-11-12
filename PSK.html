@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- <title>Interactive PSK Modulation Simulation</title> -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background-color: #fff;
+      color: #000;
+    }
+
+    .simulation-container {
+      width: 350px;
+      background-color: #1e1e1e;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .wave-section {
+      margin-bottom: 15px;
+      position: relative;
+    }
+
+    canvas {
+      width: 100%;
+      height: 80px;
+      border-radius: 5px;
+      background-color: #000;
+    }
+
+    .controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 0;
+      flex-wrap: wrap;
+    }
+
+    .controls-group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      flex-wrap: wrap;
+    }
+
+    .controls-group h3 {
+      font-size: 0.9em;
+      flex: 1;
+      margin-right: 10px;
+      color: #fff;
+    }
+
+    .slider-controls {
+      display: flex;
+      flex: 2;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .slider-controls label {
+      font-size: 0.7em;
+      flex: 1;
+      color: #fff;
+      margin-right: 5px;
+      margin-bottom: 5px;
+    }
+
+    .slider-controls input[type="range"] {
+      flex: 2;
+      margin-bottom: 5px;
+    }
+
+    .button-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 15px;
+    }
+
+    .button-row button {
+      flex: 1;
+      padding: 10px;
+      margin: 0 5px;
+      font-size: 0.9em;
+      border: none;
+      border-radius: 5px;
+      background-color: #444;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .button-row button:hover {
+      background-color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="simulation-container">
+    <!-- <h2>Interactive PSK Modulation Simulation</h2> -->
+
+    <!-- Message Signal with Binary Pattern Input -->
+    <div class="wave-section">
+      <div class="controls-row">
+        <div class="controls-group">
+          <h3>Message Signal</h3>
+          <div class="slider-controls">
+            <label for="binaryPattern">Binary Pattern:</label>
+            <input type="text" id="binaryPattern" value="10110" oninput="updateBinaryPattern()">
+          </div>
+        </div>
+      </div>
+      <canvas id="messageSignal" width="350" height="80"></canvas>
+    </div>
+
+    <!-- Carrier Signal Section -->
+    <div class="wave-section">
+      <canvas id="carrierSignal" width="350" height="80"></canvas>
+      <div class="controls-row">
+        <div class="controls-group">
+          <h3>Carrier Signal</h3>
+          <div class="slider-controls">
+            <label for="carrierAmplitude">Amplitude</label>
+            <input type="range" id="carrierAmplitude" min="10" max="40" value="30">
+            <label for="carrierFrequency">Frequency</label>
+            <input type="range" id="carrierFrequency" min="5" max="15" step="0.5" value="10">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PSK Modulated Signal Section -->
+    <div class="wave-section">
+      <canvas id="pskModulatedSignal" width="350" height="80"></canvas>
+    </div>
+
+    <!-- Control Buttons Section -->
+    <div class="button-row">
+      <button class="reset-button" onclick="resetSliders()">Reset</button>
+      <button class="toggle-button" onclick="toggleAnimation()">Stop Animation</button>
+    </div>
+  </div>
+
+  <script>
+    let time = 0;
+    const speed = 0.75;
+    let animationRunning = true;
+    let animationFrameId;
+
+    // Get canvas contexts
+    const messageContext = document.getElementById('messageSignal').getContext('2d');
+    const carrierContext = document.getElementById('carrierSignal').getContext('2d');
+    const pskContext = document.getElementById('pskModulatedSignal').getContext('2d');
+
+    // Get control elements
+    const binaryPatternInput = document.getElementById('binaryPattern');
+    const carrierAmplitudeSlider = document.getElementById('carrierAmplitude');
+    const carrierFrequencySlider = document.getElementById('carrierFrequency');
+
+    // Message signal: an array of 1s and 0s representing binary data
+    let messageSignal = [1, 0, 1, 1, 0];
+    const bitDuration = 50; // Width of each bit in pixels
+
+    // Update message signal based on the binary pattern input
+    function updateBinaryPattern() {
+      const binaryString = binaryPatternInput.value.replace(/[^01]/g, ''); // Only keep 0s and 1s
+      messageSignal = Array.from(binaryString).map(Number);
+      drawMessageSignal(messageContext);
+      drawPskModulatedSignal(pskContext);
+    }
+
+    // Reset slider values to defaults
+    function resetSliders() {
+      binaryPatternInput.value = "10110";
+      updateBinaryPattern();
+
+      carrierAmplitudeSlider.value = 30;
+      carrierFrequencySlider.value = 10;
+    }
+
+    // Function to draw the message signal (binary 1s and 0s)
+    function drawMessageSignal(context) {
+      context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+      context.strokeStyle = 'white';
+      context.lineWidth = 2;
+      context.beginPath();
+
+      for (let i = 0; i < messageSignal.length; i++) {
+        const x = i * bitDuration;
+        const y = messageSignal[i] === 1 ? 20 : 80;
+        context.moveTo(x, y);
+        context.lineTo(x + bitDuration, y);
+        if (i < messageSignal.length - 1) {
+          context.lineTo(x + bitDuration, messageSignal[i + 1] === 1 ? 20 : 80);
+        }
+      }
+      context.stroke();
+    }
+
+    // Function to draw the continuous carrier signal with independent amplitude and frequency
+    function drawCarrierSignal(context) {
+      const amplitude = parseFloat(carrierAmplitudeSlider.value);
+      const frequency = parseFloat(carrierFrequencySlider.value);
+      context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+      context.strokeStyle = 'green';
+      context.lineWidth = 2;
+      context.beginPath();
+
+      for (let x = 0; x < context.canvas.width; x++) {
+        const y = amplitude * Math.sin(2 * Math.PI * frequency * ((x + time * speed) / context.canvas.width)) + context.canvas.height / 2;
+        x === 0 ? context.moveTo(x, y) : context.lineTo(x, y);
+      }
+      context.stroke();
+    }
+
+    // Function to draw the PSK modulated signal
+    function drawPskModulatedSignal(context) {
+      const amplitude = parseFloat(carrierAmplitudeSlider.value);
+      const frequency = parseFloat(carrierFrequencySlider.value);
+      context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+      context.strokeStyle = 'blue';
+      context.lineWidth = 2;
+      context.beginPath();
+
+      for (let i = 0; i < messageSignal.length; i++) {
+        const phaseShift = messageSignal[i] === 1 ? Math.PI : 0; // 180° phase shift for '1'
+        const startX = i * bitDuration;
+        const endX = startX + bitDuration;
+
+        for (let x = startX; x < endX; x++) {
+          const y = amplitude * Math.sin(2 * Math.PI * frequency * ((x + time * speed) / context.canvas.width) + phaseShift) + context.canvas.height / 2;
+          x === startX ? context.moveTo(x, y) : context.lineTo(x, y);
+        }
+      }
+      context.stroke();
+    }
+
+    // Function to toggle animation
+    function toggleAnimation() {
+      animationRunning = !animationRunning;
+      document.querySelector('.toggle-button').textContent = animationRunning ? "Stop Animation" : "Start Animation";
+      if (animationRunning) {
+        animate();
+      } else {
+        cancelAnimationFrame(animationFrameId);
+      }
+    }
+
+    // Animation function
+    function animate() {
+      if (animationRunning) {
+        time += speed;
+
+        // Draw the message signal (binary)
+        drawMessageSignal(messageContext);
+        // Draw the carrier signal
+        drawCarrierSignal(carrierContext);
+        // Draw the PSK modulated signal
+        drawPskModulatedSignal(pskContext);
+
+        animationFrameId = requestAnimationFrame(animate);
+      }
+    }
+
+    // Initialize with default pattern
+    updateBinaryPattern();
+    animate();
+  </script>
+</body>
+</html>

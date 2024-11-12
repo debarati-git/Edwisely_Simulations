@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- <title>Interactive Frequency Modulation Simulation</title> -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background-color: #fff;
+      color: #000;
+    }
+
+    .simulation-container {
+      width: 350px;
+      background-color: #1e1e1e;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .wave-section {
+      margin-bottom: 15px;
+      position: relative;
+    }
+
+    canvas {
+      width: 100%;
+      height: 80px;
+      border-radius: 5px;
+      background-color: #000;
+    }
+
+    .controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 0;
+      flex-wrap: wrap;
+    }
+
+    .controls-group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      flex-wrap: wrap;
+    }
+
+    .controls-group h3 {
+      font-size: 0.9em;
+      flex: 1;
+      margin-right: 10px;
+      color: #fff;
+    }
+
+    .slider-controls {
+      display: flex;
+      flex: 2;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .slider-controls label {
+      font-size: 0.7em;
+      flex: 1;
+      color: #fff;
+      margin-right: 5px;
+      margin-bottom: 5px;
+    }
+
+    .slider-controls input[type="range"] {
+      flex: 2;
+      margin-bottom: 5px;
+    }
+
+    .button-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 15px;
+    }
+
+    .button-row button {
+      flex: 1;
+      padding: 10px;
+      margin: 0 5px;
+      font-size: 0.9em;
+      border: none;
+      border-radius: 5px;
+      background-color: #444;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .button-row button:hover {
+      background-color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="simulation-container">
+    <!-- <h2>Interactive Frequency Modulation Simulation</h2> -->
+
+    <!-- Modulating Signal Section -->
+    <div class="wave-section">
+      <canvas id="modulatingSignal" width="350" height="80"></canvas>
+      <div class="controls-row">
+        <div class="controls-group">
+          <h3>Modulating Signal</h3>
+          <div class="slider-controls">
+            <label for="modulatingAmplitude">Amplitude</label>
+            <input type="range" id="modulatingAmplitude" min="10" max="60" value="40">
+            <label for="modulatingFrequency">Frequency</label>
+            <input type="range" id="modulatingFrequency" min="0.5" max="5" step="0.1" value="1">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Carrier Signal Section -->
+    <div class="wave-section">
+      <canvas id="carrierWave" width="350" height="80"></canvas>
+      <div class="controls-row">
+        <div class="controls-group">
+          <h3>Carrier Signal</h3>
+          <div class="slider-controls">
+            <label for="carrierAmplitude">Amplitude</label>
+            <input type="range" id="carrierAmplitude" min="10" max="40" value="30">
+            <label for="carrierFrequency">Frequency</label>
+            <input type="range" id="carrierFrequency" min="5" max="20" step="0.5" value="10">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Frequency Modulated Signal Section -->
+    <div class="wave-section">
+      <canvas id="frequencyModulatedSignal" width="350" height="80"></canvas>
+    </div>
+
+    <!-- Control Buttons Section -->
+    <div class="button-row">
+      <button class="reset-button" onclick="resetSliders()">Reset</button>
+      <button class="toggle-button" onclick="toggleAnimation()">Stop Animation</button>
+    </div>
+  </div>
+
+  <script>
+    let time = 0;
+    const speed = 1;
+    let animationRunning = true;
+    let animationFrameId;
+
+    // Get canvas contexts
+    const modulatingContext = document.getElementById('modulatingSignal').getContext('2d');
+    const carrierContext = document.getElementById('carrierWave').getContext('2d');
+    const fmContext = document.getElementById('frequencyModulatedSignal').getContext('2d');
+
+    // Get control elements
+    const modulatingAmplitudeSlider = document.getElementById('modulatingAmplitude');
+    const modulatingFrequencySlider = document.getElementById('modulatingFrequency');
+    const carrierAmplitudeSlider = document.getElementById('carrierAmplitude');
+    const carrierFrequencySlider = document.getElementById('carrierFrequency');
+
+    // Reset slider values to defaults
+    function resetSliders() {
+      modulatingAmplitudeSlider.value = 40;
+      modulatingFrequencySlider.value = 1;
+      carrierAmplitudeSlider.value = 30;
+      carrierFrequencySlider.value = 10;
+      time = 0;
+      if (!animationRunning) {
+        animationRunning = true;
+        animate();
+      }
+    }
+
+    // Function to draw a sine wave
+    function drawSineWave(context, amplitude, frequency, color, phaseShift = 0) {
+      context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+      context.strokeStyle = color;
+      context.lineWidth = 2;
+      context.beginPath();
+
+      for (let x = 0; x < context.canvas.width; x++) {
+        const y = amplitude * Math.sin(2 * Math.PI * frequency * ((x + time * speed) / context.canvas.width) + phaseShift) + context.canvas.height / 2;
+        x === 0 ? context.moveTo(x, y) : context.lineTo(x, y);
+      }
+      context.stroke();
+    }
+
+    // Function to draw frequency-modulated wave
+    function drawFrequencyModulatedWave(context, modulatingAmp, modulatingFreq, carrierFreq) {
+      context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+      context.strokeStyle = 'blue';
+      context.lineWidth = 2;
+      context.beginPath();
+
+      for (let x = 0; x < context.canvas.width; x++) {
+        // Calculate frequency deviation based on the modulating signal
+        const frequencyDeviation = modulatingAmp * Math.sin(2 * Math.PI * modulatingFreq * ((x + time * speed) / context.canvas.width));
+        const instantaneousFrequency = carrierFreq + frequencyDeviation;
+        const y = 30 * Math.sin(2 * Math.PI * instantaneousFrequency * ((x + time * speed) / context.canvas.width)) + context.canvas.height / 2;
+        x === 0 ? context.moveTo(x, y) : context.lineTo(x, y);
+      }
+      context.stroke();
+    }
+
+    // Function to toggle animation
+    function toggleAnimation() {
+      animationRunning = !animationRunning;
+      document.querySelector('.toggle-button').textContent = animationRunning ? "Stop Animation" : "Start Animation";
+      if (animationRunning) {
+        animate();
+      } else {
+        cancelAnimationFrame(animationFrameId);
+      }
+    }
+
+    // Animation function
+    function animate() {
+      if (animationRunning) {
+        time += speed;
+
+        // Draw modulating wave
+        drawSineWave(modulatingContext, parseFloat(modulatingAmplitudeSlider.value), parseFloat(modulatingFrequencySlider.value), 'red');
+        // Draw carrier wave
+        drawSineWave(carrierContext, parseFloat(carrierAmplitudeSlider.value), parseFloat(carrierFrequencySlider.value), 'green');
+        // Draw frequency-modulated wave
+        drawFrequencyModulatedWave(fmContext, parseFloat(modulatingAmplitudeSlider.value), parseFloat(modulatingFrequencySlider.value), parseFloat(carrierFrequencySlider.value));
+
+        animationFrameId = requestAnimationFrame(animate);
+      }
+    }
+
+    animate();
+  </script>
+</body>
+</html>
