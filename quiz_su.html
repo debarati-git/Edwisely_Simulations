@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Open Loop Vs Closed Loop Control System Quiz</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #ffffff;
+        }
+        h1 {
+            color: #ffeb3b;
+            font-size: 2em;
+        }
+        .quiz-container {
+            background: #ffffff;
+            color: #333;
+            max-width: 600px;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            animation: fadeIn 1s;
+        }
+        .question-number {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #666;
+        }
+        .question-container {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            background: #f9f9f9;
+        }
+        .question-container p {
+            font-size: 1.1em;
+            color: #333;
+        }
+        .blocks {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .block {
+            width: 30%;
+            padding: 20px;
+            background-color: #e0f7fa;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .block:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        .correct {
+            background-color: #c8e6c9;
+            color: #2e7d32;
+        }
+        .wrong {
+            background-color: #ffccbc;
+            color: #d32f2f;
+        }
+        #feedback {
+            font-size: 1em;
+            margin-top: 15px;
+            color: #333;
+        }
+        #score {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-top: 20px;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #3f51b5;
+            color: #fff;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #303f9f;
+        }
+
+        /* Fade-in animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <h1>Open Loop Vs Closed Loop Control System Quiz</h1>
+        <div id="question-number" class="question-number">Question 1</div>
+        <div class="question-container">
+            <p id="question-text">Which system is easier to build?</p>
+            <div class="blocks">
+                <div id="open-loop" class="block" onclick="checkAnswer('open-loop')">Open-Loop System</div>
+                <div id="closed-loop" class="block" onclick="checkAnswer('closed-loop')">Closed-Loop System</div>
+            </div>
+            <div id="feedback"></div>
+            <button onclick="nextQuestion()">Next Question</button>
+        </div>
+        <div id="score">Score: 0 / 9</div>
+    </div>
+
+    <script>
+        const questions = [
+            { text: "Which system is easier to build?", correct: "open-loop", feedback: "Open-loop systems are easier to build." },
+            { text: "Which system can perform better with proper feedback?", correct: "closed-loop", feedback: "Closed-loop systems perform better because of feedback." },
+            { text: "Which system is more stable?", correct: "open-loop", feedback: "Open-loop systems are more stable." },
+            { text: "Which system allows for optimization?", correct: "closed-loop", feedback: "Closed-loop systems allow optimization." },
+            { text: "Which system includes a feedback mechanism?", correct: "closed-loop", feedback: "Closed-loop systems have feedback mechanisms." },
+            { text: "Which system requires less maintenance?", correct: "open-loop", feedback: "Open-loop systems require less maintenance." },
+            { text: "Which system is more reliable?", correct: "closed-loop", feedback: "Closed-loop systems are more reliable." },
+            { text: "Which system is faster?", correct: "closed-loop", feedback: "Closed-loop systems are faster." },
+            { text: "Which system is more economical to install?", correct: "open-loop", feedback: "Open-loop systems are easier to install and more economical." },
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+
+        function checkAnswer(selected) {
+            const correct = questions[currentQuestion].correct;
+            const feedbackText = questions[currentQuestion].feedback;
+            const feedbackDiv = document.getElementById("feedback");
+
+            if (selected === correct) {
+                document.getElementById(selected).classList.add("correct");
+                feedbackDiv.textContent = `Great! You are correct. ${feedbackText}`;
+                score++;
+            } else {
+                document.getElementById(selected).classList.add("wrong");
+                feedbackDiv.textContent = `Sorry! You are wrong. ${feedbackText}`;
+            }
+
+            document.getElementById("score").textContent = `Score: ${score} / ${questions.length}`;
+            document.querySelector(".blocks").style.pointerEvents = "none"; // Disable further clicks
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            if (currentQuestion < questions.length) {
+                loadQuestion();
+            } else {
+                displayFinalScore();
+            }
+        }
+
+        function loadQuestion() {
+            document.getElementById("question-number").textContent = `Question ${currentQuestion + 1}`;
+            document.getElementById("question-text").textContent = questions[currentQuestion].text;
+            document.getElementById("feedback").textContent = "";
+            document.getElementById("open-loop").classList.remove("correct", "wrong");
+            document.getElementById("closed-loop").classList.remove("correct", "wrong");
+            document.querySelector(".blocks").style.pointerEvents = "auto"; // Enable clicks
+        }
+
+        function displayFinalScore() {
+            const percentage = (score / questions.length) * 100;
+            let message = "";
+
+            if (percentage < 60) {
+                message = "You have to revisit the concept.";
+            } else if (percentage >= 60 && percentage < 90) {
+                message = "Good, you can improve.";
+            } else {
+                message = "Well done, you have mastered the topic.";
+            }
+
+            document.querySelector(".quiz-container").innerHTML = `
+                <h2>Quiz Completed!</h2>
+                <p>Your final score is: ${score} / ${questions.length} (${percentage.toFixed(2)}%)</p>
+                <p>${message}</p>
+            `;
+        }
+
+        loadQuestion();
+    </script>
+</body>
+</html>

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unit Step Response of Second-Order System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #eef2f7;
+            margin: 0;
+            padding: 20px;
+        }
+        h2 {
+            color: #333;
+            margin: 10px 0;
+        }
+        img {
+            height: 200px; /* Adjust height as necessary */
+            margin: 10px 0; /* Space between title and image */
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+            color: #555;
+        }
+        .input-group label {
+            font-weight: bold;
+        }
+        #responseCanvas {
+            border: 2px solid #4CAF50;
+            background-color: #f8f8fc;
+            margin-top: 20px;
+            box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.15);
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .output {
+            margin-top: 20px;
+            color: #333;
+        }
+        #labelContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+        .label {
+            position: absolute;
+            color: orange;
+            font-weight: bold;
+            font-size: 14px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<h2>Unit Step Response of Second-Order System</h2>
+<img src="https://www.tutorialspoint.com/control_systems/images/second_order_response.jpg" alt="Second Order Response">
+
+<div class="input-group">
+    <label for="dampingRatio">Input r(t) = unit step u(t) in time-domain and R(S) = 1/S in Laplace domain</label>
+    <label for="dampingRatio">Output is unit step response c(t) in time-domain and C(S) in Laplace domain</label>
+</div>
+
+<div class="input-group">
+    <label for="dampingRatio">Damping Ratio 0 < (&#948;) < 1:</label>
+    <input type="number" id="dampingRatio" min="0" max="1" step="0.01" value="0.316">
+</div>
+
+<div class="input-group">
+    <label for="naturalFrequency">Natural Frequency (&#969;<sub>n</sub>):</label>
+    <input type="number" id="naturalFrequency" min="0.1" step="0.1" value="3.162">
+</div>
+
+<button onclick="simulateResponse()">Simulate Unit Step Response</button>
+
+<canvas id="responseCanvas" width="700" height="400"></canvas>
+
+<div id="labelContainer"></div> <!-- Container for LaTeX labels -->
+
+<div class="output">
+    <h3>Calculated Specifications:</h3>
+    <p id="delayTime"></p>
+    <p id="riseTime"></p>
+    <p id="peakTime"></p>
+    <p id="settlingTime"></p>
+    <p id="peakOvershoot"></p>
+</div>
+
+<script>
+function simulateResponse() {
+    const delta = parseFloat(document.getElementById('dampingRatio').value);
+    const omegaN = parseFloat(document.getElementById('naturalFrequency').value);
+
+    // Calculating parameters
+    const omegaD = omegaN * Math.sqrt(1 - delta ** 2);
+    const theta = Math.acos(delta);
+    
+    const delayTime = (1 + 0.7 * delta) / omegaN;
+    const riseTime = (Math.PI - theta) / omegaD;
+    const peakTime = Math.PI / omegaD;
+    const settlingTime = 4 / (delta * omegaN);
+    const peakOvershoot = Math.exp(-delta * Math.PI / Math.sqrt(1 - delta ** 2)) * 100;
+
+    // Displaying calculated values with LaTeX rendering
+    document.getElementById('delayTime').innerHTML = `Delay Time (\\( t_d \\)) = ${delayTime.toFixed(3)} s`;
+    document.getElementById('riseTime').innerHTML = `Rise Time (\\( t_r \\)) = ${riseTime.toFixed(3)} s`;
+    document.getElementById('peakTime').innerHTML = `Peak Time (\\( t_p \\)) = ${peakTime.toFixed(3)} s`;
+    document.getElementById('settlingTime').innerHTML = `Settling Time (\\( t_s \\)) for 2% margin error = ${settlingTime.toFixed(3)} s`;
+    document.getElementById('peakOvershoot').innerHTML = `Percentage of Peak Overshoot (\\( M_p \\)) = ${peakOvershoot.toFixed(2)}%`;
+    MathJax.typeset(); // Rerender MathJax
+
+    // Simulating and plotting the unit step response
+    const canvas = document.getElementById('responseCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw grid lines and labels for x and y axes
+    ctx.strokeStyle = "#ccc";
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#555";
+
+    const tMax = settlingTime + 1;
+    const yMax = 2.0;
+
+    // X-Axis: Time labels from 0 to tMax
+    for (let x = 50; x <= 650; x += 100) {
+        const time = ((x - 50) / 600) * tMax;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, 400);
+        ctx.stroke();
+        ctx.fillText(time.toFixed(1), x, 390);
+    }
+
+    // Y-Axis: Response amplitude from 0 to yMax
+    for (let y = 50; y <= 350; y += 50) {
+        const amplitude = yMax * (350 - y) / 300;
+        ctx.beginPath();
+        ctx.moveTo(50, y);
+        ctx.lineTo(650, y);
+        ctx.stroke();
+        ctx.fillText(amplitude.toFixed(1), 20, y + 5);
+    }
+
+    // Draw axes
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(50, 50);
+    ctx.lineTo(50, 350); // y-axis
+    ctx.lineTo(650, 350); // x-axis
+    ctx.stroke();
+    ctx.fillText("c(t)", 20, 35); // Label for y-axis
+    ctx.fillText("t (sec)", 650, 370); // Label for x-axis
+
+    // Draw the unit step input u(t) in yellow
+    ctx.beginPath();
+    ctx.moveTo(50, 350);
+    ctx.lineTo(50, 200); // At y = 1 level (since yMax = 2.0, this is half the height)
+    ctx.lineTo(650, 200);
+    ctx.strokeStyle = "magenta";
+    ctx.lineWidth = 2.3;
+    ctx.stroke();
+    ctx.fillText("r(t) = u(t) (Unit Step)", 55, 195);
+
+    // Plotting the unit step response curve in red
+    const responseData = [];
+    ctx.beginPath();
+    ctx.moveTo(50, 350);
+    let maxResponse = 0;
+    let maxPoint = { x: 0, y: 0 };
+
+    for (let t = 0; t <= tMax; t += 0.01) {
+        const response = 1 - (Math.exp(-delta * omegaN * t) / Math.sqrt(1 - delta ** 2)) *
+            Math.sin(omegaD * t + theta);
+        const y = 350 - (response / yMax) * 300; // Scale y to fit within yMax
+        const x = 50 + (t / tMax) * 600;
+        responseData.push({ x, y, response }); // Store response data for intersection
+        ctx.lineTo(x, y);
+
+        // Track maximum response point
+        if (response > maxResponse) {
+            maxResponse = response;
+            maxPoint = { x, y };
+        }
+    }
+
+    ctx.strokeStyle = "red";
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Clear previous labels
+    document.getElementById("labelContainer").innerHTML = ""; 
+
+    // Function to add LaTeX label at specific times
+    function addLatexLabel(time, label) {
+        const intersection = responseData.find(data => data.x >= 50 + (time / tMax) * 600);
+        if (intersection) {
+            const labelEl = document.createElement("span");
+            labelEl.className = "label";
+            labelEl.innerHTML = `${label}`;
+            labelEl.style.left = `${intersection.x + canvas.offsetLeft }px`;
+            labelEl.style.top = `${canvas.offsetTop + 352}px`;
+            document.getElementById("labelContainer").appendChild(labelEl);
+
+            // Draw vertical line up to curve
+            ctx.beginPath();
+            ctx.moveTo(intersection.x, 350);
+            ctx.lineTo(intersection.x, intersection.y);
+            ctx.strokeStyle = "blue";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Draw horizontal line from vertical line at delay time until it intersects y-axis
+            if (label === "\\( t_d \\)") {
+                ctx.beginPath();
+                ctx.moveTo(50, intersection.y);
+                ctx.lineTo(intersection.x, intersection.y); // horizontal line to vertical line
+                ctx.strokeStyle = "blue";
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Add label "0.5" above the horizontal line
+                ctx.fillStyle = "blue"; // Set the color for the label
+                ctx.fillText("0.5", 20, 275); // Positioning the text
+            }
+        }
+    }
+
+    // Draw each vertical label with LaTeX rendering
+    addLatexLabel(delayTime, "\\( t_d \\)");
+    addLatexLabel(riseTime, "\\( t_r \\)");
+    addLatexLabel(peakTime, "\\( t_p \\)");
+    addLatexLabel(settlingTime, "\\( t_s \\)");
+
+    // Render maximum peak point label for Mp in LaTeX
+    const mpLabelEl = document.createElement("span");
+    mpLabelEl.className = "label";
+    mpLabelEl.innerHTML = `\\( M_p = ${maxResponse.toFixed(4)} \\)`;
+    mpLabelEl.style.left = `${maxPoint.x + canvas.offsetLeft - 10}px`;
+    mpLabelEl.style.top = `${maxPoint.y + canvas.offsetTop - 20}px`;
+    document.getElementById("labelContainer").appendChild(mpLabelEl);
+
+    // Draw horizontal line up to the curve at maximum peak
+    ctx.beginPath();
+    ctx.moveTo(50, maxPoint.y); // Starting from y-axis
+    ctx.lineTo(maxPoint.x, maxPoint.y); // Up to the max point on the curve
+    ctx.strokeStyle = "blue";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Rerender MathJax for all labels
+    MathJax.typeset();
+}
+</script>
+</body>
+</html>

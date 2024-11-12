@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RC Circuit Voltage Simulation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: row;
+      margin-top: 20px;
+      align-items: flex-start;
+    }
+    h1 {
+      color: #333;
+    }
+    #circuitDiagram {
+      margin: 20px;
+      width: 850px;
+      border: 1px solid #ddd;
+      padding: 15px;
+      background: #f9f9f9;
+    }
+    #controlPanel {
+      margin-left: 20px;
+      width: 200px;
+    }
+    #chartContainer {
+      width: 70%;
+      height: 400px;
+      margin-top: 20px;
+    }
+    .input-group {
+      margin-bottom: 10px;
+    }
+    label {
+      display: block;
+      font-weight: bold;
+    }
+    input {
+      width: 100%;
+      padding: 5px;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <h1>Series RC Circuit Simulation</h1>
+
+    <div id="circuitDiagram">
+      <h2>Circuit Diagram</h2>
+      <!-- Image of the Circuit Diagram -->
+      <img src="RLC.png" alt="RC Circuit Diagram" style="width: 100%; height:auto;">
+    </div>
+
+    <div id="chartContainer">
+      <canvas id="voltageChart"></canvas>
+      <canvas id="currentChart" style="margin-top: 20px;"></canvas>
+    </div>
+  </div>
+
+  <div id="controlPanel">
+    <h2>Control Parameters</h2>
+    <div class="input-group">
+      <label for="dcVoltage">Input DC Voltage (Vs)</label>
+      <input type="number" id="dcVoltage" value="10">
+    </div>
+    <div class="input-group">
+      <label for="resistor">Resistor R (Ω)</label>
+      <input type="number" id="resistor" value="1000">
+    </div>
+    <div class="input-group">
+      <label for="capacitor">Capacitor C (F)</label>
+      <input type="number" id="capacitor" value="0.001" step="0.001">
+    </div>
+    <button onclick="startSimulation()">Start Simulation</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    let voltageChart, currentChart;
+
+    function createCharts() {
+      const voltageCtx = document.getElementById('voltageChart').getContext('2d');
+      voltageChart = new Chart(voltageCtx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            { label: 'Voltage across Capacitor (Vc)', data: [], borderColor: 'blue', fill: false },
+            { label: 'Voltage across Resistor (VR)', data: [], borderColor: 'red', fill: false },
+            { label: 'Input DC Voltage (Vs)', data: [], borderColor: 'orange', fill: false }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { title: { display: true, text: 'Time (s)' }},
+            y: { title: { display: true, text: 'Voltage (V)' }}
+          }
+        }
+      });
+
+      const currentCtx = document.getElementById('currentChart').getContext('2d');
+      currentChart = new Chart(currentCtx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            { label: 'Current (A)', data: [], borderColor: 'green', fill: false }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { title: { display: true, text: 'Time (s)' }},
+            y: { title: { display: true, text: 'Current (A)' }}
+          }
+        }
+      });
+    }
+
+    function startSimulation() {
+      const dcVoltage = parseFloat(document.getElementById('dcVoltage').value);
+      const resistor = parseFloat(document.getElementById('resistor').value);
+      const capacitor = parseFloat(document.getElementById('capacitor').value);
+
+      const maxTime = 5 * resistor * capacitor; // Maximum time calculation
+      const increment = maxTime / 20; // Time increment
+      const totalTime = maxTime; // Set total time for simulation
+      const timeSteps = Math.floor(totalTime / increment);
+
+      let time = [];
+      let voltageCapacitor = [];
+      let voltageResistor = [];
+      let inputVoltage = [];
+      let current = [];
+
+      let t = 0; // Start from time 0
+      let simulationInterval = setInterval(() => {
+        if (t <= timeSteps) {
+          const currentTime = (t * increment).toFixed(2);
+          time.push(currentTime);
+
+          // Exponential charging formula
+          const voltageAcrossCapacitor = dcVoltage * (1 - Math.exp(-currentTime / (resistor * capacitor)));
+          const voltageAcrossResistor = dcVoltage - voltageAcrossCapacitor;
+          const currentValue = voltageAcrossResistor / resistor;
+
+          voltageCapacitor.push(voltageAcrossCapacitor);
+          voltageResistor.push(voltageAcrossResistor);
+          inputVoltage.push(dcVoltage);  // Store the input DC voltage
+          current.push(currentValue);
+
+          voltageChart.data.labels.push(currentTime);
+          voltageChart.data.datasets[0].data.push(voltageAcrossCapacitor);
+          voltageChart.data.datasets[1].data.push(voltageAcrossResistor);
+          voltageChart.data.datasets[2].data.push(dcVoltage);  // Plot the input voltage
+
+          currentChart.data.labels.push(currentTime);
+          currentChart.data.datasets[0].data.push(currentValue);
+
+          voltageChart.update();
+          currentChart.update();
+
+          t++; // Increment time
+        } else {
+          clearInterval(simulationInterval); // Stop the simulation when complete
+
+          // Update labels and shift them to the final time
+          const finalTime = (timeSteps * increment).toFixed(2);
+          voltageChart.data.labels = time.map((t) => (t - 0).toFixed(2)); // Reassign labels
+          currentChart.data.labels = time.map((t) => (t - 0).toFixed(2)); // Reassign labels
+
+          // Adjust datasets if needed
+          voltageChart.data.datasets[0].data = voltageCapacitor;
+          voltageChart.data.datasets[1].data = voltageResistor;
+          voltageChart.data.datasets[2].data = Array(time.length).fill(dcVoltage);  // Plot the input voltage
+
+          currentChart.data.datasets[0].data = current;
+
+          voltageChart.update();
+          currentChart.update();
+        }
+      }, 100); // Update every 100 milliseconds
+    }
+
+    window.onload = function() { createCharts(); };
+  </script>
+</body>
+</html>

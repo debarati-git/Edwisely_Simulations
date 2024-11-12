@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>First Order System For Various Inputs</title>
+  <style>
+    /* Basic styling for layout */
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      text-align: center;
+    }
+    .container {
+      width: 80%;
+      max-width: 800px;
+      margin: 20px;
+    }
+    #graph {
+      width: 100%;
+      height: 400px;
+      border: 1px solid #ccc;
+    }
+    select, button, input {
+      padding: 10px;
+      font-size: 1rem;
+      margin: 10px;
+    }
+    .formulas {
+      margin: 20px 0;
+      text-align: left;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+  </style>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+  <h1>First Order System Simulation</h1>
+  
+  <!-- Image at the top -->
+  <img src="https://www.tutorialspoint.com/control_systems/images/unity_negative_feedback.jpg" alt="Unity Negative Feedback" style="max-width:100%; height:auto;">
+  
+  <!-- Input-Output Relationships table -->
+  <div class="formulas">
+    <h2>Input-Output Relationships:</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Input Type</th>
+          <th>$$ r(t) $$</th>
+          <th>$$ R(s) $$</th>
+          <th>$$ c(t) $$</th>
+          <th>$$ C(s) $$</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Impulse</td>
+          <td>$$ \delta(t) $$</td>
+          <td>$$ 1 $$</td>
+          <td>$$ \dfrac{1}{T} e^{-\dfrac{t}{T}} u(t) $$</td>
+          <td>$$ \dfrac{1}{sT + 1} $$</td>
+        </tr>
+        <tr>
+          <td>Step</td>
+          <td>$$ u(t) $$</td>
+          <td>$$ \dfrac{1}{s} $$</td>
+          <td>$$ \left(1 - e^{-\dfrac{t}{T}}\right) u(t) $$</td>
+          <td>$$ \dfrac{1}{s} - \dfrac{1}{s + \dfrac{1}{T}} $$</td>
+        </tr>
+        <tr>
+          <td>Ramp</td>
+          <td>$$ t u(t) $$</td>
+          <td>$$ \dfrac{1}{s^2} $$</td>
+          <td>$$ \left(t - T + T e^{-\dfrac{t}{T}}\right) u(t) $$</td>
+          <td>$$ \dfrac{1}{s^2} - \dfrac{T}{s} + \dfrac{T^2}{(sT + 1)} $$</td>
+        </tr>
+        <tr>
+          <td>Parabolic</td>
+          <td>$$ \dfrac{t^2}{2} u(t) $$</td>
+          <td>$$ \dfrac{1}{s^3} $$</td>
+          <td>$$ \left(\dfrac{t^2}{2} - Tt + T^2 - T^2 e^{-\dfrac{t}{T}}\right) u(t) $$</td>
+          <td>$$ \dfrac{1}{s^3} - \dfrac{T}{s^2} + \dfrac{T^2}{s} - \dfrac{T^2}{\left(s + \dfrac{1}{T}\right)} $$</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="container">
+    <label for="inputType">Select Input Waveform:</label>
+    <select id="inputType">
+      <option value="impulse">Impulse (δ(t))</option>
+      <option value="step">Step (u(t))</option>
+      <option value="ramp">Ramp (tu(t))</option>
+      <option value="parabolic">Parabolic (t²/2u(t))</option>
+    </select>
+    
+    <label for="timeConstant">Enter Time Constant (T):</label>
+    <input type="number" id="timeConstant" value="1" min="0.1" step="0.1">
+    
+    <button onclick="simulate()">Simulate</button>
+    <canvas id="graph"></canvas>
+  </div>
+
+  <script>
+    let T; // Declare T without initializing it
+
+    // Response functions
+    function impulseResponse(t) {
+      return (t >= 0) ? (1 / T) * Math.exp(-t / T) : 0;
+    }
+
+    function stepResponse(t) {
+      return (t >= 0) ? (1 - Math.exp(-t / T)) : 0;
+    }
+
+    function rampResponse(t) {
+      return (t >= 0) ? (t - T + T * Math.exp(-t / T)) : 0;
+    }
+
+    function parabolicResponse(t) {
+      return (t >= 0) ? (t ** 2 / 2 - T * t + T ** 2 * (1 - Math.exp(-t / T))) : 0;
+    }
+
+    // Input functions
+    function inputImpulse(t) {
+      return (t === 0) ? 1 : 0; // Dirac delta function approximation
+    }
+
+    function inputStep(t) {
+      return (t >= 0) ? 1 : 0; // step function
+    }
+
+    function inputRamp(t) {
+      return (t >= 0) ? t : 0; // Ramp function
+    }
+
+    function inputParabolic(t) {
+      return (t >= 0) ? (t ** 2) / 2 : 0; // Parabolic function
+    }
+    
+    function drawAxes(ctx, width, height, inputType) {
+      ctx.beginPath();
+      ctx.strokeStyle = 'gray';
+      
+      // Draw x-axis
+      ctx.moveTo(0, height);
+      ctx.lineTo(width, height);
+      
+      // Draw y-axis
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, height);
+      
+      ctx.stroke();
+
+      // Draw x-axis ticks and labels
+      const tickInterval = width / 10; // 10 ticks for 10 seconds
+      for (let i = 0; i <= 10; i++) {
+        const x = (i / 10) * width;
+        ctx.fillText(i.toString(), x, height + 15); // Labels below x-axis
+        ctx.moveTo(x, height - 5);
+        ctx.lineTo(x, height); // x-tick
+      }
+
+      // Determine y-axis range and steps based on input type
+      let yMax, yStep;
+      if (inputType === "impulse") {
+        yMax = undefined; // Adjust for impulse peak
+        yStep = 100;
+      } else if (inputType === "step") {
+        yMax = 2;
+        yStep = 0.5;
+      } else {
+        yMax = undefined; // Default range for other input types
+        yStep = 1;
+      }
+      // Label y-axis as "c(t)" in red color
+      ctx.fillStyle = 'red';
+      ctx.fillText("c(t)", 1, 12);
+      // Label x-axis as "t" in red color
+      ctx.fillText("t", 290, 145);
+      ctx.fillStyle = 'black'; // Reset fill color to black for ticks
+
+      // Draw y-axis ticks and labels
+      for (let yValue = 0; yValue <= yMax; yValue += yStep) {
+        const y = height - (yValue * (height / yMax)) ; // Inverted for canvas
+        ctx.fillText(yValue.toFixed(1), -25, y + 5); // Display y-axis values with one decimal
+        ctx.moveTo(0, y);
+        ctx.lineTo(5, y); // y-tick
+      }
+
+      ctx.stroke();
+    }
+
+    function simulate() {
+      T = parseFloat(document.getElementById('timeConstant').value); // Get the user-selected time constant
+      const inputType = document.getElementById('inputType').value;
+      const canvas = document.getElementById('graph');
+      const ctx = canvas.getContext('2d');
+      const responses = { impulse: impulseResponse, step: stepResponse, ramp: rampResponse, parabolic: parabolicResponse };
+      const inputs = { impulse: inputImpulse, step: inputStep, ramp: inputRamp, parabolic: inputParabolic };
+      const responseFunction = responses[inputType];
+      const inputFunction = inputs[inputType];
+      const width = canvas.width;
+      const height = canvas.height;
+      const numPoints = 100;
+      const maxTime = 10;
+      const xScale = width / maxTime;
+      const yScale = height / 2;
+
+      // Clear the canvas
+      ctx.clearRect(0, 0, width, height);
+
+      // Draw axes
+      drawAxes(ctx, width, height, inputType);
+
+      // Draw a horizontal line at y = 1 for impulse and step inputs
+      if (inputType === "impulse" || inputType === "step") {
+        ctx.strokeStyle = 'green'; // Change the color for clarity
+        ctx.beginPath();
+        const yAtOne = height - (1 * yScale); // Calculate y position for value 1
+        ctx.moveTo(0, yAtOne);
+        ctx.stroke();
+
+        // Optionally add a label for this line
+        ctx.fillStyle = 'green';
+        ctx.fillText("1", 0, yAtOne); // Position the label slightly above the line
+      }
+
+      // Plot input signal
+      ctx.strokeStyle = 'blue';
+      ctx.beginPath();
+      for (let i = 0; i < numPoints; i++) {
+        const t = (i / numPoints) * maxTime;
+        const x = t * xScale;
+        const y = height - (inputFunction(t) * yScale);
+        ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Plot system response
+      ctx.strokeStyle = 'red';
+      ctx.beginPath();
+      for (let i = 0; i < numPoints; i++) {
+        const t = (i / numPoints) * maxTime;
+        const x = t * xScale;
+        const y = height - (responseFunction(t) * yScale);
+        ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Add input and output labels
+      ctx.fillStyle = 'blue';
+      ctx.font = '16px Arial';
+      ctx.fillText(`Input - ${inputType} (blue)`, 68, 30); // Position the input label
+
+      ctx.fillStyle = 'red';
+      ctx.fillText(`Output - ${inputType} response (red)`, 68, 50); // Use backticks for proper string interpolation
+
+      // Calculate output value at t=0 for impulse and step inputs
+      let outputAtT0;
+      if (inputType === "impulse") {
+        outputAtT0 = impulseResponse(0);
+      }
+
+      if (outputAtT0 !== undefined) {
+        ctx.fillStyle = 'black';
+        ctx.fillText(`Output value at t=0 is ${(outputAtT0).toFixed(2)} (1/T)`, 68, 70); // Display output value at t=0
+      }
+    }
+  </script>
+</body>
+</html>

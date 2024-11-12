@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iron Box Temperature Control Simulation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: row;
+      margin-top: 20px;
+      align-items: flex-start;
+    }
+    h1 {
+      color: #333;
+    }
+    #blockDiagram {
+      margin: 20px;
+      width: 850px;
+      border: 1px solid #ddd;
+      padding: 15px;
+      background: #f9f9f9;
+    }
+    #controlPanel {
+      margin-left: 20px;
+      width: 200px;
+    }
+    #chartContainer {
+      width: 70%;
+      height: 400px;
+      margin-top: 20px;
+    }
+    .input-group {
+      margin-bottom: 10px;
+    }
+    label {
+      display: block;
+      font-weight: bold;
+    }
+    input {
+      width: 100%;
+      padding: 5px;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <h1>Iron Box Temperature Control System</h1>
+
+    <div id="blockDiagram">
+      <h2>Closed-Loop Control System Block Diagram</h2>
+      <!-- SVG Block Diagram -->
+      <svg width="100%" height="300" xmlns="http://www.w3.org/2000/svg">
+        <!-- Setpoint Block -->
+        <rect x="10" y="80" width="100" height="50" fill="#cce5ff" stroke="#007bff"/>
+        <text x="23" y="110" font-size="14">Setpoint (°C)</text>
+
+        <!-- Error Calculation Block -->
+        <polygon points="130,95 170,80 170,130 130,115" fill="#d4edda" stroke="#28a745"/>
+        <text x="135" y="110" font-size="14">Error </text>
+
+        <!-- PID Controller Block -->
+        <rect x="220" y="80" width="200" height="50" fill="#f8d7da" stroke="#dc3545"/>
+        <text x="235" y="110" font-size="14">PID(Kp,Ki, & Kd) Controller</text>
+
+        <!-- Iron Box Temperature Dynamics Block -->
+        <rect x="460" y="80" width="150" height="50" fill="#fff3cd" stroke="#ffc107"/>
+        <text x="500" y="110" font-size="14">Iron Box </text>
+        <text x="690" y="110" font-size="14">Output Temperature (°C) </text>
+
+        <!-- Feedback Arrow -->
+        <line x1="610" y1="105" x2="680" y2="105" stroke="black" marker-end="url(#arrow)"/>
+        <line x1="640" y1="105" x2="640" y2="180" stroke="black"/>
+        <line x1="640" y1="180" x2="150" y2="180" stroke="black"/>
+        <line x1="150" y1="180" x2="150" y2="130" stroke="black" marker-end="url(#arrow)"/>
+
+        <!-- Arrows between blocks -->
+        <line x1="110" y1="105" x2="130" y2="105" stroke="black" marker-end="url(#arrow)"/>
+        <line x1="170" y1="105" x2="220" y2="105" stroke="black" marker-end="url(#arrow)"/>
+        <line x1="420" y1="105" x2="460" y2="105" stroke="black" marker-end="url(#arrow)"/>
+
+        <!-- Arrow Definitions -->
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L9,3 z" fill="black" />
+          </marker>
+        </defs>
+      </svg>
+    </div>
+
+    <div id="chartContainer">
+      <canvas id="myChart"></canvas>
+      <button onclick="startSimulation()">Start Simulation</button>
+    </div>
+  </div>
+
+  <div id="controlPanel">
+    <h2>Control Parameters</h2>
+    <div class="input-group">
+      <label for="setpoint1">Setpoint 1 (°C)</label>
+      <input type="number" id="setpoint1" value="150">
+    </div>
+    <div class="input-group">
+      <label for="setpoint2">Setpoint 2 (°C)</label>
+      <input type="number" id="setpoint2" value="180">
+    </div>
+    <div class="input-group">
+      <label for="setpoint3">Setpoint 3 (°C)</label>
+      <input type="number" id="setpoint3" value="120">
+    </div>
+    <div class="input-group">
+      <label for="kp">Kp (Proportional Gain)</label>
+      <input type="number" id="kp" value="5">
+    </div>
+    <div class="input-group">
+      <label for="ki">Ki (Integral Gain)</label>
+      <input type="number" id="ki" value="0.1" step="0.1">
+    </div>
+    <div class="input-group">
+      <label for="kd">Kd (Derivative Gain)</label>
+      <input type="number" id="kd" value="1">
+    </div>
+    <div class="input-group">
+      <label for="totalTime">Total Time (s)</label>
+      <input type="number" id="totalTime" value="300">
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    let chart;
+    const dt = 0.1;
+
+    function createChart() {
+      const ctx = document.getElementById('myChart').getContext('2d');
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            { label: 'Output Temperature (°C)', data: [], borderColor: 'blue', fill: false },
+            { label: 'Setpoint (°C)', data: [], borderColor: 'red', fill: false, borderDash: [5, 5] }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { title: { display: true, text: 'Time (s)' }},
+            y: { title: { display: true, text: 'Output Temperature (°C)' }}
+          }
+        }
+      });
+    }
+
+    function startSimulation() {
+      const setpoint1 = parseFloat(document.getElementById('setpoint1').value);
+      const setpoint2 = parseFloat(document.getElementById('setpoint2').value);
+      const setpoint3 = parseFloat(document.getElementById('setpoint3').value);
+      const Kp = parseFloat(document.getElementById('kp').value);
+      const Ki = parseFloat(document.getElementById('ki').value);
+      const Kd = parseFloat(document.getElementById('kd').value);
+      const totalTime = parseFloat(document.getElementById('totalTime').value);
+      const time_steps = totalTime / dt;
+      const interval_steps = Math.floor(time_steps / 3);
+
+      const mass = 0.5, specific_heat = 450, ambient_temp = 25;
+      let time = [], temperature = [ambient_temp], reference_input = [];
+      let error = 0, integral = 0, previous_error = 0;
+
+      for (let i = 0; i < time_steps; i++) {
+        time.push((i * dt).toFixed(1));
+        if (i < interval_steps) reference_input.push(setpoint1);
+        else if (i < 2 * interval_steps) reference_input.push(setpoint2);
+        else reference_input.push(setpoint3);
+      }
+
+      for (let t = 1; t < time_steps; t++) {
+        error = reference_input[t] - temperature[t - 1];
+        integral += error * dt;
+        const derivative = (error - previous_error) / dt;
+        previous_error = error;
+
+        let power_input = Kp * error + Ki * integral + Kd * derivative;
+        power_input = Math.max(0, Math.min(power_input, 2000));
+
+        const heat_input = power_input * dt;
+        const heat_loss = 5 * (temperature[t - 1] - ambient_temp) * dt;
+        const temp_change = (heat_input - heat_loss) / (mass * specific_heat);
+
+        temperature.push(temperature[t - 1] + temp_change);
+      }
+
+      chart.data.labels = time;
+      chart.data.datasets[0].data = temperature;
+      chart.data.datasets[1].data = reference_input;
+      chart.update();
+    }
+
+    window.onload = function() { createChart(); };
+  </script>
+</body>
+</html>
